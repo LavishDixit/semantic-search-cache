@@ -10,6 +10,9 @@ from models.clustering_model import ClusteringModel
 
 from cache.semantic_cache import SemanticCache
 
+import numpy as np
+import os
+
 app = FastAPI(title="Semantic Search API")
 
 
@@ -20,21 +23,64 @@ texts, labels = load_dataset()
 cleaned_texts = [clean_text(t) for t in texts]
 
 
-print("Generating embeddings...")
+print("Loading embedding model...")
 
 embedding_model = EmbeddingModel()
 
-embeddings = embedding_model.encode(cleaned_texts)
+
+# ----------------------------------------
+# LOAD OR GENERATE EMBEDDINGS
+# ----------------------------------------
+
+if os.path.exists("storage/embeddings.npy"):
+
+    print("Loading saved embeddings...")
+
+    embeddings = np.load("storage/embeddings.npy")
+
+else:
+
+    print("Generating embeddings...")
+
+    embeddings = embedding_model.encode(cleaned_texts)
+
+    os.makedirs("storage", exist_ok=True)
+
+    np.save("storage/embeddings.npy", embeddings)
+
+    print("Embeddings saved")
 
 
-print("Creating FAISS index...")
+# ----------------------------------------
+# LOAD OR CREATE FAISS INDEX
+# ----------------------------------------
 
 dimension = embeddings.shape[1]
 
 vector_store = VectorStore(dimension)
 
-vector_store.add(embeddings, cleaned_texts)
+if os.path.exists("storage/faiss.index"):
 
+    print("Loading FAISS index...")
+
+    vector_store.load_index()
+
+    vector_store.texts = cleaned_texts
+
+else:
+
+    print("Creating FAISS index...")
+
+    vector_store.add(embeddings, cleaned_texts)
+
+    vector_store.save_index()
+
+    print("FAISS index saved")
+
+
+# ----------------------------------------
+# TRAIN CLUSTERING MODEL
+# ----------------------------------------
 
 print("Training clustering model...")
 
@@ -43,15 +89,18 @@ cluster_model = ClusteringModel()
 cluster_model.fit(embeddings)
 
 
+# ----------------------------------------
+# INITIALIZE SEMANTIC CACHE
+# ----------------------------------------
+
 print("Initializing semantic cache...")
 
 semantic_cache = SemanticCache()
 
 
-# -----------------------------
+# ----------------------------------------
 # API ENDPOINTS
-# -----------------------------
-
+# ----------------------------------------
 
 @app.get("/")
 def home():
@@ -85,7 +134,12 @@ def query_api(request: QueryRequest):
 
     dominant_cluster = cluster_probs.argmax()
 
-    semantic_cache.add(query_embedding, query, results[0], dominant_cluster)
+    semantic_cache.add(
+        query_embedding,
+        query,
+        results[0],
+        dominant_cluster
+    )
 
     return {
         "query": query,

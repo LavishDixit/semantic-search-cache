@@ -1,4 +1,4 @@
-Semantic Search with Semantic Cache
+# Semantic Search with Semantic Cache
 
 ## Overview
 
@@ -77,7 +77,7 @@ rec.sport.baseball - talk.politics.misc - talk.religion.misc
 
 Clone the repository:
 
-git clone https://github.com/LavishDixit/semantic-search-cache.git
+git clone https://github.com/YOUR_USERNAME/semantic-search-cache.git
 
 cd semantic-search-cache
 
@@ -209,7 +209,3 @@ Result returned instantly
 
 Lavish Dixit\
 AI / ML Student
-VIT BHOPAL University
-dixitlavish2005@gmail.com
-8696935585
-www.linkedin.com/in/lavish-dixit01
